@@ -1,3 +1,0 @@
-https://github.com/michaeltinsley/Gridworld-with-Q-Learning-Reinforcement-Learning-
-https://github.com/adityajain07/ReinforcementLearning-Gridworld
-https://github.com/dennybritz/reinforcement-learning/blob/master/lib/envs/gridworld.py
