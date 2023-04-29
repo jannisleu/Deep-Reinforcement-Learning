@@ -37,8 +37,11 @@ class GridWorld:
                 x -= 1
 
         self.agent = [x, y]
+
+        #check if agent reached the goal
         done = (self.agent == self.goal)
 
+        #give reward
         if self.agent == self.trap:
             reward = -1 - 0.1
 
@@ -46,7 +49,6 @@ class GridWorld:
             reward = 1 - 0.1
         else: 
             reward = -0.1
-
 
         return self.agent, reward, done
 
@@ -78,6 +80,7 @@ class GridWorld:
     
 
     def render(self):
+        #just for visualization 
         grid = np.zeros((self.height, self.width), dtype=str)
         grid[self.agent[0], self.agent[1]] = "A"
         grid[self.goal[0], self.goal[1]] = "G"
@@ -99,6 +102,7 @@ class GridWorld:
             done = False
 
             while not done:
+                #apply policy: move closer to goal with prob of 0.8, else move random
                 decision = random.choices([0, 1], [0.2, 0.8])
                 if decision == 1:
                     direction = random.choice(env.evaluate())
@@ -106,6 +110,7 @@ class GridWorld:
                 else:
                     direction = random.choice([0, 1, 2, 3])
 
+                #step and save state, action and reward for mc estimate
                 next_state, reward, done = self.step(direction)
                 episode.append((state, direction, reward))
                 state = next_state
