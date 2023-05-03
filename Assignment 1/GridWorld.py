@@ -22,12 +22,11 @@ class GridWorld:
 
         #move left
         elif direction == 1:
-            if y > 0 and [x, y - 1] != self.wall:
+            if x < self.height - 1 and [x + 1, y] != self.wall:
                 y -= 1
-
         #move up
         elif direction == 2:
-            if x < self.height - 1 and [x + 1, y] != self.wall:
+            if y > 0 and [x, y - 1] != self.wall:
                 x += 1
 
         #move down
@@ -42,10 +41,10 @@ class GridWorld:
 
         #give reward
         if self.agent == self.trap:
-            reward = -1 - 0.1
+            reward = -1.1
 
         elif self.agent == self.goal:
-            reward = 1 - 0.1
+            reward = 1 
         else: 
             reward = -0.1
 
@@ -90,8 +89,8 @@ class GridWorld:
 
     def mc_estimation(self, n_epochs=1000):    
         # Initialize empty dictionaries to store returns and counts for each state
-        returns = np.zeros((self.width, self.height))
-        count = np.zeros((self.width, self.height))
+        returns = np.zeros((self.height, self.width))
+        count = np.zeros((self.height, self.width))
 
         # Run n_epochs epochs
         for epoch in range(n_epochs):
@@ -103,8 +102,8 @@ class GridWorld:
             while not done:
                 #apply policy: move closer to goal with prob of 0.8, else move random
                 decision = random.choices([0, 1], [0.2, 0.8])
-                if decision == 1:
-                    direction = random.choice(env.evaluate())
+                if decision[add here] == 1: # here you are comparing list to number so this condition will always be false, but i don't know what to add here as i don't know what exactly you are comparing
+                    direction = random.choice(self.evaluate())
 
                 else:
                     direction = random.choice([0, 1, 2, 3])
@@ -125,7 +124,7 @@ class GridWorld:
                     count[x, y] += 1
 
         # Calculate the MC estimation for each state
-        mc_estimates = returns / count
+        mc_estimates = returns / count + 1e-6
 
         return mc_estimates
 
