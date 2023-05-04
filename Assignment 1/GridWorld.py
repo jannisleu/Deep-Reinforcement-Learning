@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import matplotlib as plt
 
 class GridWorld:
 
@@ -127,11 +128,21 @@ class GridWorld:
         mc_estimates = returns / count + 1e-6
 
         return mc_estimates
-
-
+    
+    def visualize_state_values(env, mc_estimates):
+        fig, ax = plt.subplots()
+        ax.set_xticks(self.width)
+        ax.set_yticks(self.height)
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.grid(True)
+        im = ax.imshow(np.max(mc_estimates, axis=2), cmap='game')
+        cbar = ax.figure.colorbar(im, ax)
 
 if __name__ == '__main__':
     env = GridWorld(4, 4)
 
     mc_estimates = env.mc_estimation()
     print(mc_estimates)
+
+
