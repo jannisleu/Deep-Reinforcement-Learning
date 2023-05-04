@@ -103,7 +103,7 @@ class GridWorld:
             while not done:
                 #apply policy: move closer to goal with prob of 0.8, else move random
                 decision = random.choices([0, 1], [0.2, 0.8])
-                if decision[0] == 1: # here you are comparing list to number so this condition will always be false, but i don't know what to add here as i don't know what exactly you are comparing
+                if decision[0] == 1: 
                     direction = random.choice(self.evaluate())
 
                 else:
