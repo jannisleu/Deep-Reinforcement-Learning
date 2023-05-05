@@ -11,6 +11,9 @@ class GridWorld:
         self.goal = [self.height - 1, self.width - 1]
         self.wall = [1, 1]
         self.trap = [2, 2]
+        self.num_actions = 4
+        self.actions = [0,1,2,3]
+       
 
     def step(self, direction):
 
@@ -18,7 +21,7 @@ class GridWorld:
 
         #move right
         if direction == 0:
-            if col < self.width - 1 and [row, col + 1] != self.wall:
+            if col < self.width - 1 and [col + 1, row] != self.wall:
                 col += 1
 
         #move left
@@ -85,63 +88,69 @@ class GridWorld:
         grid[self.goal[0], self.goal[1]] = "G"
         grid[self.wall[0], self.wall[1]] = "W"
         grid[self.trap[0], self.trap[1]] = "T"
-        print(grid)
-    
+        plt.imshow(grid, cmap='Blues')
 
-    def mc_estimation(self, n_epochs=1000):    
+    def mc_estimation(self, n_epochs=1000, gamma=0.99, epsilon=0.1, alpha=0.1):    
         # Initialize empty dictionaries to store returns and counts for each state
-        returns = np.zeros((self.height, self.width))
-        count = np.zeros((self.height, self.width))
+       
+        Q = np.zeros((self.height, self.width,self.num_actions))
+        count = np.zeros((self.height, self.width, self.num_actions))
+        
 
         # Run n_epochs epochs
         for epoch in range(n_epochs):
-            # Generate an episode by following the agent's policy until the episode terminates
             episode = []
             state = self.reset()
             done = False
 
             while not done:
-                #apply policy: move closer to goal with prob of 0.8, else move random
-                decision = random.choices([0, 1], [0.2, 0.8])
-                if decision[0] == 1: 
-                    direction = random.choice(self.evaluate())
+                if np.random.rand() < epsilon: # choose the action depending on the soft policy
+                    action = np.random.choice(self.actions)
 
-                else:
-                    direction = random.choice([0, 1, 2, 3])
+                else: # choose the action with the maximum q-value
+                    q_values = Q[state[0], state[1], :]
+                    max_q = np.max(q_values)
+                    max_indices = np.where(q_values == max_q)[0]
+                    action = np.random.choice(max_indices) #if there is two actions with same maximum value then it will choose randomly from these two
+
 
                 #step and save state, action and reward for mc estimate
-                next_state, reward, done = self.step(direction)
-                episode.append((state, direction, reward))
+                next_state, reward, done = self.step(action)
+                episode.append((state, action, reward))
                 state = next_state
 
-            # Update returns and counts for each state visited in the episode
-            visited = np.zeros((self.width, self.height), dtype=bool)
-            for t, (state, direction, reward) in enumerate(episode):
-                x, y = state
-                if not visited[x, y]:
-                    visited[x, y] = True
-                    G = sum(r for _, _, r in episode[t:])
-                    returns[x, y] += G
-                    count[x, y] += 1
+            
+            G = 0 # total discounted return the agent recieve after making an action in specific state
+            #visited = np.zeros((self.width, self.height), dtype=bool)
+            for t in range(len(episode) - 1, -1, -1):
+                state, action, reward = episode[t]
+                G = gamma * G + reward # update the G
+                count[state[0], state[1], action] += 1 # update the count
+                # update the Q value, N represent the number of times the sate and the action has been visted
+                Q[state[0], state[1], action] += alpha * (G - Q[state[0], state[1], action]) / count[state[0], state[1], action]
 
-        # Calculate the MC estimation for each state
-        mc_estimates = returns / count + 1e-6
+        # empty list to save the q-values
+        policy = np.zeros((self.height, self.width), dtype=int)
+        for i in range(self.height):
+            for j in range(self.width):
+                policy[i, j] = np.argmax(Q[i, j, :]) # adding the q-value to the policy list
 
-        return mc_estimates
+        return Q, policy
     
-    def visualize_state_values(self, mc_estimates):
+    
+    def visualize_state_values(self, policy):
         fig, ax = plt.subplots()
         ax.set_xticks(np.arange(self.width))
         ax.set_yticks(np.arange(self.height))
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
+        #ax.set_xticklabels([])
+        #ax.set_yticklabels([])
         ax.grid(True)
-        im = ax.imshow(np.max(mc_estimates, axis=2), cmap='game')
-        cbar = ax.figure.colorbar(im, ax)
+        im = ax.imshow(np.array(policy), cmap='viridis')
+        cbar = ax.figure.colorbar(im, ax=ax)
 
 if __name__ == '__main__':
     env = GridWorld(4, 4)
     mc_estimates = env.mc_estimation()
     print(mc_estimates)
-    #env.visualize_state_values(mc_estimates)
+    env.visualize_state_values(mc_estimates)
 
