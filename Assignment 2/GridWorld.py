@@ -1,5 +1,5 @@
 import numpy as np
-import random
+import time
 import matplotlib.pyplot as plt
 
 class GridWorld:
@@ -9,7 +9,7 @@ class GridWorld:
         self.width = width
         self.agent = [0, 0]
         self.goal = [self.height - 1, self.width - 1]
-        self.wall = [1, 1]
+        self.wall = [3, 2]
         self.trap = [2, 2]
         self.num_actions = 4
         self.actions = [0,1,2,3]
@@ -21,7 +21,7 @@ class GridWorld:
 
         #move right
         if direction == 0:
-            if col < self.width - 1 and [col + 1, row] != self.wall:
+            if col < self.width - 1 and [row, col + 1] != self.wall:
                 col += 1
 
         #move left
@@ -30,12 +30,12 @@ class GridWorld:
                 col -= 1
         #move up
         elif direction == 2:
-            if row > 0 and [col, row - 1] != self.wall:
+            if row > 0 and [row - 1, col] != self.wall:
                 row -= 1
 
         #move down
         elif direction == 3:
-            if row < self.height - 1 and [col, row + 1] != self.wall:
+            if row < self.height - 1 and [row + 1, col] != self.wall:
                 row += 1
 
         self.agent = [row, col]
@@ -88,6 +88,7 @@ class GridWorld:
         grid[self.goal[0], self.goal[1]] = "G"
         grid[self.wall[0], self.wall[1]] = "W"
         grid[self.trap[0], self.trap[1]] = "T"
+        print(grid)
 
     def mc_estimation(self, n_epochs=1000, gamma=0.99, epsilon=0.1, alpha=0.1):    
         # Initialize empty dictionaries to store returns and counts for each state
@@ -141,11 +142,14 @@ class GridWorld:
 
         return Q, policy, average_reward
     
-    def plot_average_return(self, returns, n_epochs=1000):
+    def plot_average_return(self, returns, time, n_epochs=1000):
         fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
         fig.subplots_adjust(wspace=0.3)
+        fig.suptitle('Average Return per Episode')
         ax1.plot(range(n_epochs), returns)
-        ax1.set_title('Average Return per Episode')
+        ax1.set_xlabel('number of episodes')
+        ax2.set_xlabel('runtime in seconds')
+        ax2.plot(np.linspace(0, time, 1000), returns)
         plt.show()
 
 
@@ -162,8 +166,11 @@ class GridWorld:
 
 if __name__ == '__main__':
     env = GridWorld(4, 4)
+    start_time = time.time()
     _, policy, average_return = env.mc_estimation()
-    #print(policy)
-    #env.visualize_state_values(policy)
-    env.plot_average_return(average_return)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(policy)
+    env.render()
+    env.plot_average_return(average_return, elapsed_time)
     
