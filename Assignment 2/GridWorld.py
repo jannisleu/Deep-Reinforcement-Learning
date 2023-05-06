@@ -88,13 +88,15 @@ class GridWorld:
         grid[self.goal[0], self.goal[1]] = "G"
         grid[self.wall[0], self.wall[1]] = "W"
         grid[self.trap[0], self.trap[1]] = "T"
-        plt.imshow(grid, cmap='Blues')
 
     def mc_estimation(self, n_epochs=1000, gamma=0.99, epsilon=0.1, alpha=0.1):    
         # Initialize empty dictionaries to store returns and counts for each state
        
         Q = np.zeros((self.height, self.width,self.num_actions))
         count = np.zeros((self.height, self.width, self.num_actions))
+        #get a variable to accumulate the rewards of all epochs
+        total_reward = 0 
+        average_reward = []
         
 
         # Run n_epochs epochs
@@ -120,7 +122,7 @@ class GridWorld:
                 state = next_state
 
             
-            G = 0 # total discounted return the agent recieve after making an action in specific state
+            G = 0 # total discounted return the agent receive after making an action in specific state
             #visited = np.zeros((self.width, self.height), dtype=bool)
             for t in range(len(episode) - 1, -1, -1):
                 state, action, reward = episode[t]
@@ -128,6 +130,8 @@ class GridWorld:
                 count[state[0], state[1], action] += 1 # update the count
                 # update the Q value, N represent the number of times the sate and the action has been visted
                 Q[state[0], state[1], action] += alpha * (G - Q[state[0], state[1], action]) / count[state[0], state[1], action]
+            total_reward += G
+            average_reward.append(total_reward / (epoch + 1))
 
         # empty list to save the q-values
         policy = np.zeros((self.height, self.width), dtype=int)
@@ -135,9 +139,16 @@ class GridWorld:
             for j in range(self.width):
                 policy[i, j] = np.argmax(Q[i, j, :]) # adding the q-value to the policy list
 
-        return Q, policy
+        return Q, policy, average_reward
     
-    
+    def plot_average_return(self, returns, n_epochs=1000):
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
+        fig.subplots_adjust(wspace=0.3)
+        ax1.plot(range(n_epochs), returns)
+        ax1.set_title('Average Return per Episode')
+        plt.show()
+
+
     def visualize_state_values(self, policy):
         fig, ax = plt.subplots()
         ax.set_xticks(np.arange(self.width))
@@ -147,10 +158,12 @@ class GridWorld:
         ax.grid(True)
         im = ax.imshow(np.array(policy), cmap='viridis')
         cbar = ax.figure.colorbar(im, ax=ax)
+        plt.show()
 
 if __name__ == '__main__':
     env = GridWorld(4, 4)
-    mc_estimates = env.mc_estimation()
-    print(mc_estimates)
-    env.visualize_state_values(mc_estimates)
-
+    _, policy, average_return = env.mc_estimation()
+    #print(policy)
+    #env.visualize_state_values(policy)
+    env.plot_average_return(average_return)
+    

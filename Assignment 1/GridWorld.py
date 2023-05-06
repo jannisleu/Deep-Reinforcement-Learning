@@ -141,7 +141,7 @@ class GridWorld:
 
 if __name__ == '__main__':
     env = GridWorld(4, 4)
-    mc_estimates = env.mc_estimation()
-    print(mc_estimates)
+    _, policy = env.mc_estimation()
+    print(policy)
     #env.visualize_state_values(mc_estimates)
 
