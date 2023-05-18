@@ -150,6 +150,10 @@ class GridWorld:
         Q = np.zeros((self.height, self.width,self.num_actions))
         count = np.zeros((self.height, self.width, self.num_actions))
 
+        #get a variable to accumulate the rewards of all epochs
+        total_reward = 0 
+        average_reward = []
+
         for epoch in range(n_epochs):
             episode = []
             state = self.reset()
@@ -164,11 +168,14 @@ class GridWorld:
 
                 td_error = reward + gamma * Q[next_state[0], next_state[1], next_action]
                 Q[state[0], state[1], action] += alpha * (td_error - Q[state[0], state[1], action])
-                
+
                 state = next_state
                 action = next_action
+            
+            #total_reward += reward
+            #average_reward.append(total_reward / (epoch + 1))
 
-        return Q
+        return Q, #average_reward
     
     def plot_average_return(self, returns, time, n_epochs=1000):
         """plotting of the average return per episode"""
@@ -195,13 +202,13 @@ class GridWorld:
 
 if __name__ == '__main__':
     env = GridWorld(4, 4)
-    #start_time = time.time()
+    start_time = time.time()
+    result, average_return = env.sarsa()
     #_, policy, average_return = env.mc_estimation()
-    #end_time = time.time()
-    #elapsed_time = end_time - start_time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
     #print(policy)
-    env.render()
+    #env.render()
     #env.plot_average_return(average_return, elapsed_time)
-    result = env.sarsa()
     print(result)
     
