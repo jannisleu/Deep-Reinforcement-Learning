@@ -102,49 +102,7 @@ class GridWorld:
             max_q = np.max(q_values)
             max_indices = np.where(q_values == max_q)[0]
             return np.random.choice(max_indices) #if there is two actions with same maximum value then it will choose randomly from these two 
-
-    def mc_estimation(self, n_epochs=1000, gamma=0.99, alpha=0.1):    
-        """Policy iteration with Monte Carlo estimates"""
-
-        # Initialize empty dictionaries to store returns and counts for each state
-        Q = np.zeros((self.height, self.width,self.num_actions))
-        count = np.zeros((self.height, self.width, self.num_actions))
-        #get a variable to accumulate the rewards of all epochs
-        total_reward = 0 
-        average_reward = []
-
-        # Run n_epochs epochs
-        for epoch in range(n_epochs):
-            episode = []
-            state = self.reset()
-            done = False
-
-            while not done:
-                action = self.epsilon_greedy_policy(Q, state)
-                #step and save state, action and reward for mc estimate
-                next_state, reward, done = self.step(action)
-                episode.append((state, action, reward))
-                state = next_state
-
-            G = 0 # total discounted return the agent receive after making an action in specific state
-            #visited = np.zeros((self.width, self.height), dtype=bool)
-            for t in range(len(episode) - 1, -1, -1):
-                state, action, reward = episode[t]
-                G = gamma * G + reward # update the G
-                count[state[0], state[1], action] += 1 # update the count
-                # update the Q value, N represent the number of times the sate and the action has been visted
-                Q[state[0], state[1], action] += alpha * (G - Q[state[0], state[1], action]) / count[state[0], state[1], action]
-            total_reward += G
-            average_reward.append(total_reward / (epoch + 1))
-
-        # empty list to save the q-values
-        policy = np.zeros((self.height, self.width), dtype=int)
-        for i in range(self.height):
-            for j in range(self.width):
-                policy[i, j] = np.argmax(Q[i, j, :]) # adding the q-value to the policy list
-
-        return Q, policy, average_reward
-    
+        
     def sarsa(self, n_epochs=1000, gamma=0.99, alpha=0.1):
         # Initialize empty dictionaries to store returns and counts for each state
         Q = np.zeros((self.height, self.width,self.num_actions))
