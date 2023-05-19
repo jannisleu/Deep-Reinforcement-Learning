@@ -148,34 +148,30 @@ class GridWorld:
     def sarsa(self, n_epochs=1000, gamma=0.99, alpha=0.1):
         # Initialize empty dictionaries to store returns and counts for each state
         Q = np.zeros((self.height, self.width,self.num_actions))
-        count = np.zeros((self.height, self.width, self.num_actions))
+        #count = np.zeros((self.height, self.width, self.num_actions))
 
         #get a variable to accumulate the rewards of all epochs
-        total_reward = 0 
+        #total_reward = 0 
         average_reward = []
 
         for epoch in range(n_epochs):
-            episode = []
+            #episode = []
             state = self.reset()
             done = False
+            action = self.epsilon_greedy_policy(Q, state)
 
             while not done:
-                action = self.epsilon_greedy_policy(Q, state)
-                #step and save state, action and reward for mc estimate
                 next_state, reward, done = self.step(action)
-                episode.append((state, action, reward))
-                next_action = self.epsilon_greedy_policy(Q, state)
-
-                td_error = reward + gamma * Q[next_state[0], next_state[1], next_action]
-                Q[state[0], state[1], action] += alpha * (td_error - Q[state[0], state[1], action])
-
+                next_action = self.epsilon_greedy_policy(Q, next_state)
+                td_error = reward + gamma * Q[next_state[0], next_state[1], next_action] - Q[state[0], state[1], action]
+                Q[state[0], state[1], action] += alpha * td_error
                 state = next_state
                 action = next_action
             
-            #total_reward += reward
-            #average_reward.append(total_reward / (epoch + 1))
+            average_reward.append(reward)
 
-        return Q, #average_reward
+        return Q, average_reward
+
     
     def plot_average_return(self, returns, time, n_epochs=1000):
         """plotting of the average return per episode"""
@@ -207,6 +203,7 @@ if __name__ == '__main__':
     #_, policy, average_return = env.mc_estimation()
     end_time = time.time()
     elapsed_time = end_time - start_time
+    env.plot_average_return(average_return, elapsed_time)
     #print(policy)
     #env.render()
     #env.plot_average_return(average_return, elapsed_time)
