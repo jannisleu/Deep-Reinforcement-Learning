@@ -132,7 +132,7 @@ class GridWorld:
                      total_reward += G
                      average_reward.append(total_reward / (epoch + 1))
 
-        # empty list to save the q-values
+               # empty list to save the q-values
                  policy = np.zeros((self.height, self.width), dtype=int)
                  for i in range(self.height):
                     for j in range(self.width):

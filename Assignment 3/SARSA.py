@@ -85,7 +85,7 @@ class GridWorld:
     
 
     def render(self):
-        #just for visualization 
+        """visualization, mainly for debugging"""
         grid = np.zeros((self.height, self.width), dtype=str)
         grid[self.agent[0], self.agent[1]] = "A"
         grid[self.goal[0], self.goal[1]] = "G"
@@ -94,6 +94,7 @@ class GridWorld:
         print(grid)
 
     def epsilon_greedy_policy(self, Q, state, epsilon=0.1):
+        """epsilon greedy policy to determine which action the agent chooses. Move random with prob=epsilon else choose action with the highest q-value"""
         if np.random.rand() < epsilon: # choose the action depending on the soft policy
             return np.random.choice(self.actions)
 
@@ -104,12 +105,12 @@ class GridWorld:
             return np.random.choice(max_indices) #if there is two actions with same maximum value then it will choose randomly from these two 
         
     def sarsa(self, n_epochs=1000, gamma=0.99, alpha=0.1):
+        """Implementation of 1-step tabular sarsa"""
         # Initialize empty dictionaries to store returns and counts for each state
         Q_SARSA = np.zeros((self.height, self.width,self.num_actions))
-        #count = np.zeros((self.height, self.width, self.num_actions))
 
         #get a variable to accumulate the rewards of all epochs
-        #total_reward = 0 
+        total_reward = 0 
         average_reward = []
 
         for epoch in range(n_epochs):
@@ -125,8 +126,9 @@ class GridWorld:
                 Q_SARSA[state[0], state[1], action] += alpha * td_error
                 state = next_state
                 action = next_action
+                total_reward += reward
             
-            average_reward.append(reward)
+            average_reward.append(total_reward / (epoch + 1))
 
         return Q_SARSA, average_reward
 
@@ -142,28 +144,11 @@ class GridWorld:
         ax2.plot(np.linspace(0, time, 1000), returns)
         plt.show()
 
-
-    def visualize_state_values(self, policy):
-        fig, ax = plt.subplots()
-        ax.set_xticks(np.arange(self.width))
-        ax.set_yticks(np.arange(self.height))
-        #ax.set_xticklabels([])
-        #ax.set_yticklabels([])
-        ax.grid(True)
-        im = ax.imshow(np.array(policy), cmap='viridis')
-        cbar = ax.figure.colorbar(im, ax=ax)
-        plt.show()
-
 if __name__ == '__main__':
     env = GridWorld(4, 4)
     start_time = time.time()
     result, average_return = env.sarsa()
-    #_, policy, average_return = env.mc_estimation()
     end_time = time.time()
     elapsed_time = end_time - start_time
     env.plot_average_return(average_return, elapsed_time)
-    #print(policy)
-    #env.render()
-    #env.plot_average_return(average_return, elapsed_time)
     print(result)
-    
