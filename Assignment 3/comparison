@@ -1,7 +1,11 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+total_reward = 0 
+average = []
+maximum = []
+minimum = []
+episode = []
 class GridWorld:
         def __init__(self, height, width):
              self.height = height
@@ -96,132 +100,74 @@ class GridWorld:
                  return np.random.choice(max_indices)
 
         def compar(self):
-            def mc_estimation(self, n_epochs=100, gamma=0.99, epsilon=0.1):    
-                 Q_MC = np.zeros((self.height, self.width,self.num_actions))
-                 count = np.zeros((self.height, self.width, self.num_actions))
-                 total_reward = 0 
-                 average_reward = []
-                 for epoch in range(n_epochs):
-                     episode = []
-                     state = self.reset()
-                     done = False
+          for x in 100:
+               for y in 1000:
+                    def mc_estimation(self,gamma=0.99, epsilon=0.1):    
+                         Q_MC = np.zeros((self.height, self.width,self.num_actions))
+                         count = np.zeros((self.height, self.width, self.num_actions))
+                              
+                         state = self.reset()
+                         done = False
+                         while not done:
+                              if np.random.rand() < epsilon: # choose the action depending on the soft policy
+                                   action = np.random.choice(self.actions)
+                              else: # choose the action with the maximum q-value
+                                   q_values = Q_MC[state[0], state[1], :]
+                                   max_q = np.max(q_values)
+                                   max_indices = np.where(q_values == max_q)[0]
+                                   action = np.random.choice(max_indices) #if there is two actions with same maximum value then it will choose randomly from these two
+                         next_state, reward, done = self.step(action)
+                         episode.append((state, action, reward))
+                         state = next_state
+                         G = 0 
+                         for t in range(len(episode) - 1, -1, -1):
+                              state, action, reward = episode[t]
+                              G = gamma * G + reward # update the G
+                              count[state[0], state[1], action] += 1 # update the count
+                              Q_MC[state[0], state[1], action] +=  (G - Q_MC[state[0], state[1], action]) / count[state[0], state[1], action]
+                              total_reward += G
+                         average.append()
+                         maximum.append()
+                         minimum.append()
+                        
+                         return average, minimum, maximum
+               #calculate the average of average, the averaage of min, average of max
+               #ploting average(average, maximum, minimum)
+               # calculate the mean and standard deviation of the average
+                    def sarsa(self, gamma=0.99, alpha=0.1):
+                         Q_SARSA = np.zeros((self.height, self.width,self.num_actions))
+          for i in 100:
+               for j in 1000: 
+                    def sarsa(self, gamma=0.99, alpha=0.1):
+                         Q_SARSA = np.zeros((self.height, self.width,self.num_actions))                
+                         state = self.reset()
+                         done = False
+                         action = self.epsilon_greedy_policy(Q_SARSA, state)
 
-                     while not done:
-                        if np.random.rand() < epsilon:
-                             action = np.random.choice(self.actions)
+                         while not done:
+                              next_state, reward, done = self.step(action)
+                              next_action = self.epsilon_greedy_policy(Q_SARSA, next_state)
+                              td_error = reward + gamma * Q_SARSA[next_state[0], next_state[1], next_action] - Q_SARSA[state[0], state[1], action]
+                              Q_SARSA[state[0], state[1], action] += alpha * td_error
+                              state = next_state
+                              action = next_action
+                              total_reward += reward
+                         
+                         average.append()
+                         maximum.append()
+                         minimum.append()
+                         return average, minimum, maximum
+               #calculate the average of average, the averaage of min, average of max
+               #ploting average(average, maximum, minimum)
+               # calculate the mean and standard deviation of the average
+                        
+            
+            
 
-                        else: 
-                             q_values = Q_MC[state[0], state[1], :]
-                             max_q = np.max(q_values)
-                             max_indices = np.where(q_values == max_q)[0]
-                             action = np.random.choice(max_indices) #if there is two actions with same maximum value then it will choose randomly from these two
-
-
-                #step and save state, action and reward for mc estimate
-                        next_state, reward, done = self.step(action)
-                        episode.append((state, action, reward))
-                        state = next_state
+        
+                    
 
             
-                     G = 0 
-                     for t in range(len(episode) - 1, -1, -1):
-                         state, action, reward = episode[t]
-                         G = gamma * G + reward 
-                         count[state[0], state[1], action] += 1 
-                         Q_MC[state[0], state[1], action] +=  (G - Q_MC[state[0], state[1], action]) / count[state[0], state[1], action]
-                     total_reward += G
-                     average_reward.append(total_reward / (epoch + 1))
-
-               # empty list to save the q-values
-                 policy = np.zeros((self.height, self.width), dtype=int)
-                 for i in range(self.height):
-                    for j in range(self.width):
-                         policy[i, j] = np.argmax(Q_MC[i, j, :]) # adding the q-value to the policy list
-
-                 return Q_MC
-            def sarsa(self, n_epochs=100, gamma=0.99, alpha=0.1):
-                 Q_SARSA = np.zeros((self.height, self.width,self.num_actions))
-                 average_reward = []
-                 for epoch in range(n_epochs):
-                      state = self.reset()
-                      done = False
-                      action = self.epsilon_greedy_policy(Q_SARSA, state)
-                      while not done:
-                           next_state, reward, done = self.step(action)
-                           next_action = self.epsilon_greedy_policy(Q_SARSA, next_state)
-                           td_error = reward + gamma * Q_SARSA[next_state[0], next_state[1], next_action] - Q_SARSA[state[0], state[1], action]
-                           Q_SARSA[state[0], state[1], action] += alpha * td_error
-                           state = next_state
-                           action = next_action
-            
-                      average_reward.append(reward)
-
-                 return Q_SARSA
-        
-            Q_MC = mc_estimation(self)
-            Q_SARSA = sarsa(self)
-
-            return Q_SARSA, Q_MC
-        
-        def track_q_value_changes(self, start_state, start_action, Q, algorithm='SARSA', n_episodes=100, gamma=0.99, alpha=0.1, epsilon=0.1):
-             q_value_changes = []
-             state = start_state
-             action = start_action
-             episode = []
-
-             for _ in range(n_episodes):
-                  q_value_changes.append(Q[state[0], state[1], action])
-
-            # Perform one episode using the specified algorithm
-                  if algorithm == 'SARSA':
-                       next_state, reward, done = self.step(action)
-                       next_action = self.epsilon_greedy_policy(Q, next_state)
-                       td_error = reward + gamma * Q[next_state[0], next_state[1], next_action] - Q[state[0], state[1], action]
-                       Q[state[0], state[1], action] += alpha * td_error
-                       state = next_state
-                       action = next_action
-
-                  elif algorithm == 'MC':
-                       #episode = []
-                       state = self.reset()
-                       done = False
-
-                       while not done:
-                        if np.random.rand() < epsilon:
-                             action = np.random.choice(self.actions)
-                        else:
-                            q_values = Q[state[0], state[1], :]
-                            max_q = np.max(q_values)
-                            max_indices = np.where(q_values == max_q)[0]
-                            action = np.random.choice(max_indices)
-
-                       next_state, reward, done = self.step(action)
-                       episode.append((state, action, reward))
-                       state = next_state
-
-                  G = 0
-                  for t in range(len(episode) - 1, -1, -1):
-                    state, action, reward = episode[t]
-                    G = gamma * G + reward
-                    Q[state[0], state[1], action] += (G - Q[state[0], state[1], action]) / count[state[0], state[1], action]
-
-             return q_value_changes
-
-grid_world = GridWorld(4,4)
-
-# Call the compar method to obtain the Q-values
-Q_SARSA, Q_MC = grid_world.compar()
-start_state = [0, 0]
-start_action = 0
-q_value_changes_sarsa = grid_world.track_q_value_changes(start_state, start_action, Q_SARSA, algorithm='SARSA')
-q_value_changes_mc = grid_world.track_q_value_changes(start_state, start_action, Q_MC, algorithm='MC')
-# Print the obtained Q-values
-print("Q-values for SARSA:")
-print(Q_SARSA)
-print()
-
-print("Q-values for MC-Control:")
-print(Q_MC)
 
 
 
