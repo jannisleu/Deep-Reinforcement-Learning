@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import gymnasium as gym
+import datetime
+import seaborn as sns
 
 class ExperienceReplayBuffer:
     def __init__(self, max_size: int, environment_name: str, parallel_game_unrolls: int, observation_preprocessing_function: callable, unroll_steps: int):
@@ -107,11 +109,11 @@ def create_dqn_network(num_actions: int):
 
 def train_dqn(train_dqn_network, target_network, dataset, optimizer, num_training_steps: int, gamma: float):
     def training_step(q_target, observations, actions):
-        with tf.GradientTape() as Tape:
-            q_predictions_all_actions = train_dq_network(observations)
+        with tf.GradientTape() as tape:
+            q_predictions_all_actions = train_dqn_network(observations)
             q_predictions = tf.gather(q_predictions_all_actions, actions, batch_dims = 1)
             loss = tf.reduce_mean(tf.square(q_predictions - q_target))
-        geadients = tape.gradient(loss, train_dqn_network.trainable_variables)
+        gradients = tape.gradient(loss, train_dqn_network.trainable_variables)
         optimizer.apply_gradients(zip(gradients, train_dqn_network.trainable_variables))
         return loss.numpy()
     losses = []
@@ -121,7 +123,7 @@ def train_dqn(train_dqn_network, target_network, dataset, optimizer, num_trainin
         q_vals = target_network(subsequent_state)
         q_values.append(q_vals.numpy())
         max_q_values = tf.reduce_max(q_vals, axis = 1)
-        use_subsequent_state = tf.where(terminated, tf.zeros_like(max_q_values, dtype = tf.float32), tf_ones_like(max_q_values, dtype = tf.float32))
+        use_subsequent_state = tf.where(terminated, tf.zeros_like(max_q_values, dtype = tf.float32), tf.ones_like(max_q_values, dtype = tf.float32))
         q_target = reward + (gamma * max_q_values * use_subsequent_state)
         loss = training_step(q_target, observations = state)
         losses.append(loss)
@@ -129,11 +131,11 @@ def train_dqn(train_dqn_network, target_network, dataset, optimizer, num_trainin
             break
     return np.mean(losses), np.mean(q_values)
 
-def test_q_network(test_dqn_nqtwork, target_network, enviroment_name:str, num_parallel_tests : int, gamma:float):
-    envs = gym.vector.make(enviroment_name, parallel_game_unrolls)
+def test_q_network(test_dqn_network, target_network, enviroment_name:str, num_parallel_tests: int, gamma:float):
+    envs = gym.vector.make(enviroment_name, num_parallel_tests)
     states, _ = envs.rest()
     done = False
-    time_step = 0
+    timestep = 0
     episode_finished = np.zeros(num_parallel_tests, dtype = bool)
     returns = np.zeros(num_parallel_tests)
     while not done:
@@ -142,7 +144,7 @@ def test_q_network(test_dqn_nqtwork, target_network, enviroment_name:str, num_pa
         states, rewards, terminateds, _, _ = envs.step(actions)
         episode_finished = np.logical_or(episode_finished, terminateds)
         returns *= ((gamma ** timestep) + rewards) * (np.logical_not(episode_finished).astype(np.float32))
-        time_step += 1
+        timestep += 1
         done = np.all(episode_finished)
     return np.mean(returns)
 
@@ -150,34 +152,54 @@ def polyak_averaging_weights(source_network, target_network, polyak_averaging_fa
     source_network_weights = source_network.get_weights()
     target_network_weights = target_network.getweights()
     averaged_weights =[]
-    for source_networks_weight, target_network_weight in zip(source_networks_weights, target_network_weights):
+    for source_networks_weight, target_network_weight in zip(source_network_weights, target_network_weights):
         fraction_kept_weights = polyak_averaging_factor * target_network_weight
-        fraction_updated_weights = (1- polyak_averaging_factor) * source_network_weight
+        fraction_updated_weights = (1- polyak_averaging_factor) * source_network_weights
         averaged_weight = fraction_kept_weights + fraction_updated_weights
-        average_weights.append(average_weight)
+        averaged_weights.append(averaged_weight)
     target_network.set_weights(averaged_weights)
+
+def visualize_results(results_df, step):
+    # create three subplots
+    fig, axis = plt.subplots(1, 3)
+    # include the row idxs explicitly in the results_df
+    results_df['step'] = results_df.index
+    # plot the average return
+    sns.lineplot(x='step', y='average_return', data=results_df, ax=axis[0])
+    # plot the average loss
+    sns.lineplot(x='step', y='average_loss', data=results_df, ax=axis[1])
+    # plot the average q values
+    sns.lineplot(x='step', y='average_q_values', data=results_df, ax=axis[2])
+    # save the figure
+    # create a timestring from the timestamp
+    timestring = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    # save the figure
+    plt.savefig(f"./{timestring}_results_step{step}.png")
+    # close the figure
+    plt.close(fig)
+
 
 
 def dqn():
     ENV_NAME = 'ALE/Breakout-v5'
-    NUMBER_ACTIONS = gym.make(ENVIRONMENT_NAME).action_space.n
+    NUMBER_ACTIONS = gym.make(ENV_NAME).action_space.n
     ERP_SIZE = 100000
-    PARALLEL_GAME_UNROLLS = 128
+    PARALLEL_GAME_UNROLLS = 64
     UNROLL_STEPS = 4
     EPSILON = 0.2
     GAMMA = 0.98
-    PREFILL_STEPS = 100
+    PREFILL_STEPS = 50
     POLYAK_AVERAGING_FACTOR = 0.99
     NUM_TRAINING_STEPS_PER_ITER = 4
     NUM_TRAINING_ITERS = 50000
-    TEST_EVERY_n_STEPS = 1000
-    TEST_NUM_PARELLEL_ENVS = 1024
+    TEST_EVERY_N_STEPS = 1000
+    TEST_NUM_PARELLEL_ENVS = 512
     erp = ExperienceReplayBuffer(max_size=ERP_SIZE, environment_name=ENV_NAME, parallel_game_unrolls=PARALLEL_GAME_UNROLLS, observation_preprocessing_function=observation_preprocessing_function, unroll_steps=UNROLL_STEPS)
     dqn_agent = create_dqn_network(num_actions=NUMBER_ACTIONS)
     target_network = create_dqn_network(num_actions = NUMBER_ACTIONS)
     dqn_agent.summary()
     dqn_agent(tf.random.uniform(shapes = (1, 84, 84, 3)))
-    polyak_averaging_weights(source_network = dqn_agent, target_network = target_network, polyak_averaging_factor = 0.0 )
+    polyak_averaging_weights(source_network = dqn_agent, target_network = target_network, polyak_averaging_factor = 0.0)
 
     dqn_optimizer = tf.keras.optimizer.Adam()
     
@@ -185,26 +207,26 @@ def dqn():
 
     return_tracker = []
     dqn_prediction_error = []
-    average_q_values = []
-    prefill_exploration_epsilon = 1.8
+    average_return_values = []
+    prefill_exploration_epsilon = 1.0
     for prefill_step in range(PREFILL_STEPS):
         erp.fill_with_samples(dqn_agent, prefill_exploration_epsilon)
 
-    for step in range (NUM_TRAINING_ITERS):
+    for step in range(NUM_TRAINING_ITERS):
         erp.fill_with_samples(dqn_agent, EPSILON)
         dataset = erp.create_dataset()
         average_loss, average_q_values = train_dqn(dqn_agent, dataset, dqn_optimizer, num_training_steps = NUM_TRAINING_STEPS_PER_ITER, gamma = GAMMA)
-        polyak_averaging_weights(source_network = dqn_agent, target_network = target_network, polyak_averaging_factor = POLYAK_AVEERAGING_FACTOR)
-        if step % TEST_EVERY_n_STEPS == 0:
-            average_return = test_q_network(dqn_agent, ENVIROMENT_NAME, num_parallel_tests, gamma= GAMMA)
+        polyak_averaging_weights(source_network = dqn_agent, target_network = target_network, polyak_averaging_factor = POLYAK_AVERAGING_FACTOR)
+        if step % TEST_EVERY_N_STEPS == 0:
+            average_return = test_q_network(dqn_agent, ENV_NAME, TEST_NUM_PARELLEL_ENVS, gamma= GAMMA)
             return_tracker.append(average_return)
             dqn_prediction_error.append(average_loss)
-            average_q_values.append(average_q_values)
+            average_return_values.append(average_q_values) 
             print(f'TESTING: Average return:{average_return}, Average loss: {average_loss}, Average q-values-estimation:{average_q_values}')
     results_dict = {'average_return': return_tracker, 'average_loss': dqn_prediction_error, 'average_q_values': average_q_values}
     results_df = pd.DataFrame(results_dict)
     visualize_results(results_df, step)
-    print(results_df)
+    #print(results_df)
 
   
         
